@@ -74,6 +74,7 @@
 #include <linux/jump_label.h>
 #include <linux/lcm.h>
 #include <linux/list_sort.h>
+#include <linux/llist.h>
 #include <linux/math.h>
 #include <linux/mdio.h>
 #include <linux/mm.h>

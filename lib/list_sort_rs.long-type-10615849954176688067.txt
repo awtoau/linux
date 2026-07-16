@@ -1,0 +1,1 @@
+unsafe extern "C" fn(*mut c_void, *mut bindings::bindings_raw::list_head, Option<unsafe extern "C" fn(*mut c_void, *const bindings::bindings_raw::list_head, *const bindings::bindings_raw::list_head) -> i32>) {bindings::bindings_raw::list_sort}
