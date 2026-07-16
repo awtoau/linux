@@ -59,12 +59,22 @@ else
 obj-y += sort.o bcd.o list_sort.o
 endif
 obj-y += debug_locks.o random32.o \
-	 bust_spinlocks.o kasprintf.o bitmap.o scatterlist.o \
+	 bust_spinlocks.o scatterlist.o \
 	 uuid.o iov_iter.o clz_ctz.o \
 	 bsearch.o lwq.o kfifo.o \
 	 percpu-refcount.o rhashtable.o \
 	 once.o refcount.o rcuref.o usercopy.o errseq.o bucket_locks.o \
-	 generic-radix-tree.o bitmap-str.o
+	 generic-radix-tree.o bitmap-str.o kasprintf.o
+
+# linux-rs: PARTIAL translation — bitmap.c always builds (it still owns
+# the allocator-touching functions: bitmap_alloc/bitmap_free/
+# devm_bitmap_*, guarded out of bitmap_rs.rs below), plus bitmap_rs.o
+# under CONFIG_RUST for the 27 functions translated so far (guarded out
+# of bitmap.c via #ifdef CONFIG_RUST to avoid duplicate EXPORT_SYMBOLs).
+obj-y += bitmap.o
+ifdef CONFIG_RUST
+obj-y += bitmap_rs.o
+endif
 obj-y += string_helpers.o
 obj-y +=
 obj-$(CONFIG_TEST_HEXDUMP) += test_hexdump.o
