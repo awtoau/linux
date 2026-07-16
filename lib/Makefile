@@ -35,11 +35,11 @@ endif
 
 lib-y := ctype.o string.o vsprintf.o cmdline.o \
 	 rbtree.o radix-tree.o timerqueue.o xarray.o \
-	 maple_tree.o idr.o extable.o irq_regs.o argv_split.o \
+	 maple_tree.o idr.o extable.o irq_regs.o \
 	 flex_proportions.o ratelimit.o \
 	 is_single_threaded.o plist.o decompress.o kobject_uevent.o \
 	 earlycpio.o seq_buf.o siphash.o dec_and_lock.o \
-	 nmi_backtrace.o memcat_p.o \
+	 nmi_backtrace.o \
 	 buildid.o objpool.o iomem_copy.o sys_info.o
 
 lib-$(CONFIG_UNION_FIND) += union_find.o
@@ -371,4 +371,18 @@ ifdef CONFIG_RUST
 obj-y += llist_rs.o
 else
 obj-y += llist.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += memcat_p_rs.o
+else
+lib-y += memcat_p.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += argv_split_rs.o
+else
+lib-y += argv_split.o
 endif
