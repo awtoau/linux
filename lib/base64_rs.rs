@@ -61,7 +61,7 @@ pub unsafe extern "C" fn base64_encode(
     // SAFETY: src has srclen bytes; dst is large enough per the C API
     // contract (BASE64_CHARS(srclen) characters).
     unsafe {
-        let mut put = |cp: &mut usize, b: u8| {
+        let put = |cp: &mut usize, b: u8| {
             *dst.add(*cp) = b as _;
             *cp += 1;
         };

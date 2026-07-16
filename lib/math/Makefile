@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-only
-obj-y += div64.o reciprocal_div.o
+obj-y += div64.o
 
 # linux-rs: translated TUs — Rust when available (gcd_key.c stays C: the
 # static key's linker-section definition), C originals otherwise.
@@ -22,3 +22,10 @@ obj-$(CONFIG_TEST_DIV64)	+= test_div64.o
 obj-$(CONFIG_TEST_MULDIV64)	+= test_mul_u64_u64_div_u64.o
 
 obj-y += tests/
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += reciprocal_div_rs.o
+else
+obj-y += reciprocal_div.o
+endif

@@ -86,6 +86,7 @@
 #include <linux/platform_device.h>
 #include <linux/pm_opp.h>
 #include <linux/rational.h>
+#include <linux/reciprocal_div.h>
 #include <linux/sort.h>
 #include <linux/poll.h>
 #include <linux/property.h>
