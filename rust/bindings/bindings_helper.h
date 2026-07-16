@@ -97,6 +97,7 @@
 #include <linux/sys_soc.h>
 #include <linux/task_work.h>
 #include <linux/tracepoint.h>
+#include <linux/ucs2_string.h>
 #include <linux/usb.h>
 #include <linux/wait.h>
 #include <linux/workqueue.h>
