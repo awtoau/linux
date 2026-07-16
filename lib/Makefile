@@ -52,13 +52,13 @@ obj-y	+= lockref.o
 
 CONTEXT_ANALYSIS_rhashtable.o := y
 
-# linux-rs: translated TU — Rust sort when Rust is available.
+# linux-rs: translated TUs — Rust when Rust is available.
 ifdef CONFIG_RUST
-obj-y += sort_rs.o
+obj-y += sort_rs.o bcd_rs.o
 else
-obj-y += sort.o
+obj-y += sort.o bcd.o
 endif
-obj-y += bcd.o parser.o debug_locks.o random32.o \
+obj-y += parser.o debug_locks.o random32.o \
 	 bust_spinlocks.o kasprintf.o bitmap.o scatterlist.o \
 	 list_sort.o uuid.o iov_iter.o clz_ctz.o \
 	 bsearch.o find_bit.o llist.o lwq.o memweight.o kfifo.o \
@@ -142,7 +142,11 @@ lib-$(CONFIG_INDIRECT_IOMEM) += logic_iomem.o
 
 obj-$(CONFIG_TRACE_MMIO_ACCESS) += trace_readwrite.o
 
+ifdef CONFIG_RUST
+obj-$(CONFIG_GENERIC_HWEIGHT) += hweight_rs.o
+else
 obj-$(CONFIG_GENERIC_HWEIGHT) += hweight.o
+endif
 
 obj-$(CONFIG_BTREE) += btree.o
 obj-$(CONFIG_INTERVAL_TREE) += interval_tree.o

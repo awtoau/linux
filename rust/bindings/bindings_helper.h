@@ -61,6 +61,7 @@
 #include <linux/file.h>
 #include <linux/firmware.h>
 #include <linux/fs.h>
+#include <linux/bcd.h>
 #include <linux/gcd.h>
 #include <linux/i2c.h>
 #include <linux/int_log.h>
@@ -81,6 +82,7 @@
 #include <linux/pid_namespace.h>
 #include <linux/platform_device.h>
 #include <linux/pm_opp.h>
+#include <linux/rational.h>
 #include <linux/sort.h>
 #include <linux/poll.h>
 #include <linux/property.h>
