@@ -61,7 +61,7 @@ endif
 obj-y += parser.o debug_locks.o random32.o \
 	 bust_spinlocks.o kasprintf.o bitmap.o scatterlist.o \
 	 uuid.o iov_iter.o clz_ctz.o \
-	 bsearch.o lwq.o memweight.o kfifo.o \
+	 bsearch.o lwq.o kfifo.o \
 	 percpu-refcount.o rhashtable.o \
 	 once.o refcount.o rcuref.o usercopy.o errseq.o bucket_locks.o \
 	 generic-radix-tree.o bitmap-str.o
@@ -399,4 +399,11 @@ ifdef CONFIG_RUST
 lib-y += cmdline_rs.o
 else
 lib-y += cmdline.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += memweight_rs.o
+else
+obj-y += memweight.o
 endif
