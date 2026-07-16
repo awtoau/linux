@@ -108,6 +108,7 @@
 #include <linux/wait.h>
 #include <linux/win_minmax.h>
 #include <linux/workqueue.h>
+#include <net/checksum.h>
 #include <linux/xarray.h>
 #include <trace/events/rust_sample.h>
 

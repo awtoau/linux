@@ -223,7 +223,7 @@ obj-$(CONFIG_NLATTR) += nlattr.o
 
 obj-$(CONFIG_LRU_CACHE) += lru_cache.o
 
-obj-$(CONFIG_GENERIC_CSUM) += checksum.o
+obj-$(CONFIG_GENERIC_CSUM) +=
 
 obj-$(CONFIG_GENERIC_ATOMIC64) += atomic64.o
 
@@ -406,4 +406,11 @@ ifdef CONFIG_RUST
 obj-y += memweight_rs.o
 else
 obj-y += memweight.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-$(CONFIG_GENERIC_CSUM) += checksum_rs.o
+else
+obj-$(CONFIG_GENERIC_CSUM) += checksum.o
 endif
