@@ -28,6 +28,7 @@
  */
 #include <linux/base64.h>
 #include <linux/decompress/generic.h>
+#include <linux/earlycpio.h>
 #include <linux/hrtimer_types.h>
 
 #include <linux/acpi.h>
