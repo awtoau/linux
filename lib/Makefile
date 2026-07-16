@@ -66,7 +66,7 @@ obj-y += parser.o debug_locks.o random32.o \
 	 once.o refcount.o rcuref.o usercopy.o errseq.o bucket_locks.o \
 	 generic-radix-tree.o bitmap-str.o
 obj-y += string_helpers.o
-obj-y += hexdump.o
+obj-y +=
 obj-$(CONFIG_TEST_HEXDUMP) += test_hexdump.o
 obj-y += kstrtox.o
 obj-$(CONFIG_FIND_BIT_BENCHMARK) += find_bit_benchmark.o
@@ -427,4 +427,11 @@ ifdef CONFIG_RUST
 lib-y += earlycpio_rs.o
 else
 lib-y += earlycpio.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += hexdump_rs.o
+else
+obj-y += hexdump.o
 endif

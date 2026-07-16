@@ -20,3 +20,31 @@ __rust_helper void rust_helper_pr_warn_cpio_name_too_long(const char *p, int max
 {
 	pr_warn("File %s exceeding MAX_CPIO_FILE_NAME [%d]\n", p, max);
 }
+
+/*
+ * printk(fmt, ...) is itself printk_index_wrap(_printk, fmt, ...) — a
+ * build-time-indexing macro, same rule 0014 story as pr_debug/pr_warn
+ * above. One shim per print_hex_dump() switch branch (lib/hexdump.c).
+ */
+__rust_helper void rust_helper_printk_hex_dump_address(const char *level,
+							 const char *prefix_str,
+							 const void *addr,
+							 const char *linebuf)
+{
+	printk("%s%s%p: %s\n", level, prefix_str, addr, linebuf);
+}
+
+__rust_helper void rust_helper_printk_hex_dump_offset(const char *level,
+							const char *prefix_str,
+							int offset,
+							const char *linebuf)
+{
+	printk("%s%s%.8x: %s\n", level, prefix_str, offset, linebuf);
+}
+
+__rust_helper void rust_helper_printk_hex_dump_none(const char *level,
+						      const char *prefix_str,
+						      const char *linebuf)
+{
+	printk("%s%s%s\n", level, prefix_str, linebuf);
+}
