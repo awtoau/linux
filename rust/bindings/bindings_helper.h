@@ -26,6 +26,7 @@
  * This workaround may not be possible in some cases, depending on how the C
  * headers are set up.
  */
+#include <linux/base64.h>
 #include <linux/hrtimer_types.h>
 
 #include <linux/acpi.h>
@@ -100,6 +101,7 @@
 #include <linux/ucs2_string.h>
 #include <linux/usb.h>
 #include <linux/wait.h>
+#include <linux/win_minmax.h>
 #include <linux/workqueue.h>
 #include <linux/xarray.h>
 #include <trace/events/rust_sample.h>

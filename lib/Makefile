@@ -39,7 +39,7 @@ lib-y := ctype.o string.o vsprintf.o cmdline.o \
 	 flex_proportions.o ratelimit.o \
 	 is_single_threaded.o plist.o decompress.o kobject_uevent.o \
 	 earlycpio.o seq_buf.o siphash.o dec_and_lock.o \
-	 nmi_backtrace.o win_minmax.o memcat_p.o \
+	 nmi_backtrace.o memcat_p.o \
 	 buildid.o objpool.o iomem_copy.o sys_info.o
 
 lib-$(CONFIG_UNION_FIND) += union_find.o
@@ -62,7 +62,7 @@ obj-y += parser.o debug_locks.o random32.o \
 	 bust_spinlocks.o kasprintf.o bitmap.o scatterlist.o \
 	 uuid.o iov_iter.o clz_ctz.o \
 	 bsearch.o find_bit.o llist.o lwq.o memweight.o kfifo.o \
-	 percpu-refcount.o rhashtable.o base64.o \
+	 percpu-refcount.o rhashtable.o \
 	 once.o refcount.o rcuref.o usercopy.o errseq.o bucket_locks.o \
 	 generic-radix-tree.o bitmap-str.o
 obj-y += string_helpers.o
@@ -350,4 +350,18 @@ ifdef CONFIG_RUST
 obj-$(CONFIG_UCS2_STRING) += ucs2_string_rs.o
 else
 obj-$(CONFIG_UCS2_STRING) += ucs2_string.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += base64_rs.o
+else
+obj-y += base64.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += win_minmax_rs.o
+else
+lib-y += win_minmax.o
 endif
