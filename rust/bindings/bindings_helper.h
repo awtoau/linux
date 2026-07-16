@@ -63,12 +63,15 @@
 #include <linux/fs.h>
 #include <linux/gcd.h>
 #include <linux/i2c.h>
+#include <linux/int_log.h>
 #include <linux/interrupt.h>
 #include <linux/io-pgtable.h>
 #include <linux/ioport.h>
 #include <linux/iosys-map.h>
 #include <linux/jiffies.h>
 #include <linux/jump_label.h>
+#include <linux/lcm.h>
+#include <linux/math.h>
 #include <linux/mdio.h>
 #include <linux/mm.h>
 #include <linux/miscdevice.h>
