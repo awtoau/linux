@@ -52,7 +52,13 @@ obj-y	+= lockref.o
 
 CONTEXT_ANALYSIS_rhashtable.o := y
 
-obj-y += bcd.o sort.o parser.o debug_locks.o random32.o \
+# linux-rs: translated TU — Rust sort when Rust is available.
+ifdef CONFIG_RUST
+obj-y += sort_rs.o
+else
+obj-y += sort.o
+endif
+obj-y += bcd.o parser.o debug_locks.o random32.o \
 	 bust_spinlocks.o kasprintf.o bitmap.o scatterlist.o \
 	 list_sort.o uuid.o iov_iter.o clz_ctz.o \
 	 bsearch.o find_bit.o llist.o lwq.o memweight.o kfifo.o \

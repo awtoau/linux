@@ -8,6 +8,13 @@ __rust_helper void rust_helper_might_resched(void)
 	might_resched();
 }
 
+/* cond_resched() is a config-dependent macro (no-op under PREEMPTION);
+ * the shim compiles it in C so Rust callers get config-correct behaviour. */
+__rust_helper int rust_helper_cond_resched(void)
+{
+	return cond_resched();
+}
+
 __rust_helper struct task_struct *rust_helper_get_current(void)
 {
 	return current;
