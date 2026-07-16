@@ -58,7 +58,7 @@ obj-y += sort_rs.o bcd_rs.o list_sort_rs.o
 else
 obj-y += sort.o bcd.o list_sort.o
 endif
-obj-y += parser.o debug_locks.o random32.o \
+obj-y += debug_locks.o random32.o \
 	 bust_spinlocks.o kasprintf.o bitmap.o scatterlist.o \
 	 uuid.o iov_iter.o clz_ctz.o \
 	 bsearch.o lwq.o kfifo.o \
@@ -434,4 +434,11 @@ ifdef CONFIG_RUST
 obj-y += hexdump_rs.o
 else
 obj-y += hexdump.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += parser_rs.o
+else
+obj-y += parser.o
 endif
