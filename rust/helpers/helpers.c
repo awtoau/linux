@@ -80,6 +80,7 @@
 #include "pid_namespace.c"
 #include "platform.c"
 #include "poll.c"
+#include "print.c"
 #include "processor.c"
 #include "property.c"
 #include "pwm.c"

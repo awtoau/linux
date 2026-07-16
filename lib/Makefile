@@ -37,7 +37,7 @@ lib-y := ctype.o string.o vsprintf.o \
 	 rbtree.o radix-tree.o timerqueue.o xarray.o \
 	 maple_tree.o idr.o extable.o irq_regs.o \
 	 flex_proportions.o ratelimit.o \
-	 is_single_threaded.o plist.o decompress.o kobject_uevent.o \
+	 is_single_threaded.o plist.o kobject_uevent.o \
 	 earlycpio.o seq_buf.o siphash.o dec_and_lock.o \
 	 nmi_backtrace.o \
 	 buildid.o objpool.o iomem_copy.o sys_info.o
@@ -413,4 +413,11 @@ ifdef CONFIG_RUST
 obj-$(CONFIG_GENERIC_CSUM) += checksum_rs.o
 else
 obj-$(CONFIG_GENERIC_CSUM) += checksum.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += decompress_rs.o
+else
+lib-y += decompress.o
 endif
