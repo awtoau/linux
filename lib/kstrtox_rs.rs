@@ -124,10 +124,17 @@ pub unsafe extern "C" fn _parse_integer_limit(
             }
             // Check for overflow only if we are within range of it in
             // the max base we support (16).
+            //
+            // C: on overflow (`check_mul_overflow` or `check_add_overflow`
+            // firing), `res` is explicitly set to `ULLONG_MAX`, not left
+            // as the wrapped value — callers (e.g. `memparse`, upstream
+            // commit 9a4580db6e9f) rely on that saturation contract.
             if res & (!0u64 << 60) != 0 && res > div_u64(u64::MAX - val as u64, base) {
                 rv |= KSTRTOX_OVERFLOW;
+                res = u64::MAX;
+            } else {
+                res = res.wrapping_mul(base as u64).wrapping_add(val as u64);
             }
-            res = res.wrapping_mul(base as u64).wrapping_add(val as u64);
             rv += 1;
             s = s.add(1);
         }
