@@ -84,17 +84,24 @@ unsafe fn hex_byte_pack(buf: *mut u8, byte: u8) -> *mut u8 {
 
 /// Convert a hex digit to its value, or -1 on bad input. Deliberately
 /// branchless (see module docs) — exact same bit arithmetic as the C.
+///
+/// The C promotes `unsigned char ch` to `int` for these subtractions,
+/// so the `&` masks stay in the 32-bit signed domain until the final
+/// cast to `unsigned` before the `>> 8`; doing the subtractions in
+/// `u8`/`i8` instead (as an earlier version of this function did)
+/// loses the sign bit above bit 7 and makes the shift always yield 0.
 #[export]
 pub unsafe extern "C" fn hex_to_bin(ch: u8) -> c_int {
+    let ch = ch as i32;
     let cu = ch & 0xdf;
-    -1 + ((ch.wrapping_sub(b'0').wrapping_add(1)) as i32
-        & (((ch.wrapping_sub(b'9').wrapping_sub(1))
-            & (b'0'.wrapping_sub(1).wrapping_sub(ch))) as u32
-            >> 8) as i32)
-        + ((cu.wrapping_sub(b'A').wrapping_add(11)) as i32
-            & (((cu.wrapping_sub(b'F').wrapping_sub(1))
-                & (b'A'.wrapping_sub(1).wrapping_sub(cu))) as u32
-                >> 8) as i32)
+    -1 + ((ch.wrapping_sub(b'0' as i32).wrapping_add(1))
+        & ((ch.wrapping_sub(b'9' as i32).wrapping_sub(1))
+            & ((b'0' as i32).wrapping_sub(1).wrapping_sub(ch))) as u32 as i32
+            >> 8)
+        + ((cu.wrapping_sub(b'A' as i32).wrapping_add(11))
+            & ((cu.wrapping_sub(b'F' as i32).wrapping_sub(1))
+                & ((b'A' as i32).wrapping_sub(1).wrapping_sub(cu))) as u32 as i32
+                >> 8)
 }
 
 /// Convert an ASCII hex string to binary. 0 on success, -EINVAL on bad input.
