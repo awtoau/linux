@@ -188,40 +188,49 @@ pub unsafe extern "C" fn memparse(ptr: *const c_char, retptr: *mut *mut c_char) 
     let mut endptr: *mut c_char = core::ptr::null_mut();
 
     // SAFETY: caller contract.
-    let mut ret = unsafe { bindings::simple_strtoull(ptr, &mut endptr, 0) };
+    let ret = unsafe { bindings::simple_strtoull(ptr, &mut endptr, 0) };
 
     // SAFETY: `endptr` was just set by simple_strtoull to point within
     // the string (or at its NUL terminator).
     let suffix = unsafe { *endptr } as u8;
     // C: a fallthrough switch — EVERY matched tier (E down to K) falls
-    // through the REST of the chain, including the K/k case body, so
-    // `ret <<= 10` runs once per tier from the matched one down to K
-    // (E: 6 times total, ..., K: once) AND `endptr++` always runs
-    // whenever ANY suffix matched, not only literal K/k. Losing that
-    // "endptr++ happens for every tier" reading (and translating it as
-    // "only when suffix == K") is the obvious wrong-by-inspection
-    // mistranslation here — matched via an explicit shift count instead
-    // of literal case-fallthrough, same total effect including the
-    // unconditional (once a tier matched) `endptr` advance.
-    let shifts: u32 = match suffix {
-        b'E' | b'e' => 6,
-        b'P' | b'p' => 5,
-        b'T' | b't' => 4,
-        b'G' | b'g' => 3,
-        b'M' | b'm' => 2,
-        b'K' | b'k' => 1,
-        _ => {
-            if !retptr.is_null() {
-                unsafe { *retptr = endptr };
-            }
-            return ret;
-        }
+    // through the REST of the chain, so `shl` accumulates 10 once per
+    // tier from the matched one down to K (E: 60, ..., K: 10). Unlike
+    // the pre-fix C, `endptr++`/suffix-consumption is now GATED on
+    // `shl != 0 && ptr != endptr` (i.e. only when a suffix matched AND
+    // there was a preceding numeric prefix) — a bare suffix like "k" or
+    // "E" with no leading digits must NOT be consumed, and must report
+    // the suffix char itself via `retptr` (upstream commit
+    // 9a4580db6e9f, "lib: fix memparse() to handle overflow").
+    let shl: u32 = match suffix {
+        b'E' | b'e' => 60,
+        b'P' | b'p' => 50,
+        b'T' | b't' => 40,
+        b'G' | b'g' => 30,
+        b'M' | b'm' => 20,
+        b'K' | b'k' => 10,
+        _ => 0,
     };
-    ret <<= 10 * shifts;
-    // SAFETY: `endptr` points at the suffix char itself (not NUL, since
-    // a suffix was matched), so `+1` stays in-bounds of the
-    // NUL-terminated string.
-    endptr = unsafe { endptr.add(1) };
+
+    let ret = if shl != 0 && ptr != endptr.cast_const() {
+        // C: `check_shl_overflow(ret, shl, &ret)` — bits lost off the
+        // top of a u64 left shift means overflow; saturate to
+        // ULLONG_MAX (u64::MAX) rather than wrapping, matching the
+        // fixed C semantics (previously we always wrapped).
+        let shifted = ret.wrapping_shl(shl);
+        let overflowed = (shifted >> shl) != ret;
+        // SAFETY: `endptr` points at the suffix char itself (not NUL,
+        // since a suffix was matched), so `+1` stays in-bounds of the
+        // NUL-terminated string.
+        endptr = unsafe { endptr.add(1) };
+        if overflowed {
+            u64::MAX
+        } else {
+            shifted
+        }
+    } else {
+        ret
+    };
 
     if !retptr.is_null() {
         unsafe { *retptr = endptr };
