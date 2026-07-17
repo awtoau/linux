@@ -64,7 +64,7 @@ obj-y += debug_locks.o random32.o \
 	 bsearch.o lwq.o kfifo.o \
 	 percpu-refcount.o rhashtable.o \
 	 once.o refcount.o rcuref.o usercopy.o errseq.o bucket_locks.o \
-	 generic-radix-tree.o bitmap-str.o kasprintf.o
+	 generic-radix-tree.o kasprintf.o
 
 # linux-rs: PARTIAL translation — bitmap.c always builds (it still owns
 # the allocator-touching functions: bitmap_alloc/bitmap_free/
@@ -458,4 +458,14 @@ ifdef CONFIG_RUST
 obj-y += kstrtox_rs.o
 else
 obj-y += kstrtox.o
+endif
+
+# linux-rs: PARTIAL translation — bitmap-str.c always builds (it still
+# owns bitmap_parse_user/bitmap_print_*/bitmap_parselist_user, guarded
+# out of bitmap-str_rs.rs; see that file's module doc), plus
+# bitmap-str_rs.o under CONFIG_RUST for the functions translated so far
+# (guarded out of bitmap-str.c via #ifdef CONFIG_RUST).
+obj-y += bitmap-str.o
+ifdef CONFIG_RUST
+obj-y += bitmap-str_rs.o
 endif
