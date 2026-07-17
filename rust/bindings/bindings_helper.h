@@ -77,6 +77,7 @@
 #include <linux/jiffies.h>
 #include <linux/jump_label.h>
 #include <linux/kstrtox.h>
+#include "../../lib/kstrtox.h"
 #include <linux/lcm.h>
 #include <linux/list_sort.h>
 #include <linux/llist.h>

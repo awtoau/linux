@@ -78,7 +78,7 @@ endif
 obj-y += string_helpers.o
 obj-y +=
 obj-$(CONFIG_TEST_HEXDUMP) += test_hexdump.o
-obj-y += kstrtox.o
+obj-y +=
 obj-$(CONFIG_FIND_BIT_BENCHMARK) += find_bit_benchmark.o
 obj-$(CONFIG_FIND_BIT_BENCHMARK_RUST) += find_bit_benchmark_rust.o
 obj-$(CONFIG_TEST_BPF) += test_bpf.o
@@ -451,4 +451,11 @@ ifdef CONFIG_RUST
 obj-y += parser_rs.o
 else
 obj-y += parser.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += kstrtox_rs.o
+else
+obj-y += kstrtox.o
 endif
