@@ -27,7 +27,14 @@
  * headers are set up.
  */
 #include <linux/base64.h>
+#include <linux/decompress/bunzip2.h>
 #include <linux/decompress/generic.h>
+#include <linux/decompress/inflate.h>
+#include <linux/decompress/unlz4.h>
+#include <linux/decompress/unlzma.h>
+#include <linux/decompress/unlzo.h>
+#include <linux/decompress/unxz.h>
+#include <linux/decompress/unzstd.h>
 #include <linux/earlycpio.h>
 #include <linux/hex.h>
 #include <linux/hrtimer_types.h>
