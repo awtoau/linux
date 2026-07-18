@@ -2514,6 +2514,22 @@ static unsigned int serial8250_get_divisor(struct uart_port *port,
 	return serial8250_do_get_divisor(port, baud);
 }
 
+#ifdef CONFIG_RUST
+/* linux-rs: translated TU — drivers/tty/serial/8250/8250_helpers_rs.rs.
+ * Oracle-verified byte-identical against bench/diff_8250_helpers.{c,rs}
+ * over 7500 generated cflag combinations; see
+ * docs/serial-8250-translation-scoping-2026-07-18.md for provenance and
+ * why only this one function (of the three verified there) is wired in
+ * here. `up` is intentionally unused, matching the Rust side: the
+ * original C body never dereferenced it either.
+ */
+extern unsigned char serial8250_compute_lcr_rs(tcflag_t c_cflag);
+
+static unsigned char serial8250_compute_lcr(struct uart_8250_port *up, tcflag_t c_cflag)
+{
+	return serial8250_compute_lcr_rs(c_cflag);
+}
+#else
 static unsigned char serial8250_compute_lcr(struct uart_8250_port *up, tcflag_t c_cflag)
 {
 	u8 lcr = UART_LCR_WLEN(tty_get_char_size(c_cflag));
@@ -2529,6 +2545,7 @@ static unsigned char serial8250_compute_lcr(struct uart_8250_port *up, tcflag_t 
 
 	return lcr;
 }
+#endif
 
 void serial8250_do_set_divisor(struct uart_port *port, unsigned int baud,
 			       unsigned int quot)

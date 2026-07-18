@@ -10,6 +10,11 @@ obj-$(CONFIG_SERIAL_8250)		+= 8250.o
 
 obj-$(CONFIG_SERIAL_8250)		+= 8250_base.o
 8250_base-y				:= 8250_port.o
+# linux-rs: translated TU (partial) — serial8250_compute_lcr() only, see
+# docs/serial-8250-translation-scoping-2026-07-18.md. 8250_port.o itself
+# still builds from C either way; this just adds the Rust object it calls
+# into under CONFIG_RUST.
+8250_base-$(CONFIG_RUST)		+= 8250_helpers_rs.o
 8250_base-$(CONFIG_SERIAL_8250_DMA)	+= 8250_dma.o
 8250_base-$(CONFIG_SERIAL_8250_DWLIB)	+= 8250_dwlib.o
 8250_base-$(CONFIG_SERIAL_8250_FINTEK)	+= 8250_fintek.o
