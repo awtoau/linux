@@ -88,3 +88,22 @@ __rust_helper bool rust_helper_unsafe_get_user_ul(unsigned long *val,
 efault:
 	return false;
 }
+
+/*
+ * lib/strncpy_from_user.c support: byte-sized sibling of
+ * rust_helper_unsafe_get_user_ul above, same contract and fault
+ * semantics, needed for do_strncpy_from_user()'s byte-at-a-time
+ * fallback loop (unsafe_get_user(c, src+res, efault) where c is
+ * `char`, not `unsigned long`).
+ */
+__rust_helper bool rust_helper_unsafe_get_user_u8(unsigned char *val,
+						   const char __user *ptr)
+{
+	unsigned char tmp;
+
+	unsafe_get_user(tmp, ptr, efault);
+	*val = tmp;
+	return true;
+efault:
+	return false;
+}
