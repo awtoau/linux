@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0+
 //! 8250/16550 pure register-bit-manipulation helper(s) — Rust translation
 //! of a narrow slice of `drivers/tty/serial/8250/8250_port.c`.
 //!
