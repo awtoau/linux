@@ -2268,6 +2268,374 @@ static void serial8250_initialize(struct uart_port *port)
 	serial8250_iir_txen_test(port);
 }
 
+#ifdef CONFIG_RUST_8250_STARTUP
+/* linux-rs: Tier C translation — serial8250_do_startup()/serial8250_do_shutdown()
+ * control flow, see docs/8250-tier-c-startup-shutdown-2026-07-18.md (linux-rs
+ * repo) and awto-au/linux-rs#25.
+ *
+ * NO KUNIT COVERAGE, BY DESIGN, NOT AN OMISSION: both functions call the real
+ * IRQ subsystem (up->ops->setup_irq()/release_irq(), which for this project's
+ * actual driver resolve to serial_link_irq_chain()/serial_unlink_irq_chain()
+ * wrapping real request_irq()/free_irq(), plus a real synchronize_irq() that
+ * blocks on in-flight interrupt completion) and take the real port spinlock
+ * (guard(uart_port_lock_irqsave)). Per
+ * docs/8250-tier-c-blocker-2026-07-18.md's analysis: a KUnit fake can stand
+ * in for *data* (Tier B's register-file buffer) but not for "the interrupt
+ * subsystem accepted this registration" or "no interrupt is currently in
+ * flight" — faking those would mean reimplementing genuine IRQ-core
+ * chain-walking/shared-IRQ bookkeeping/completion-wait semantics inside the
+ * test, which would verify the fake against itself, not the driver against
+ * anything real. Dan explicitly accepted this as a scoped, documented
+ * exception to this project's normal KUnit-gate discipline (2026-07-18):
+ * this code is translated and wired into the LIVE startup/shutdown path
+ * without KUnit coverage, gated instead on a byte-for-byte side-by-side
+ * boot-transcript comparison against the unmodified C path (documented in
+ * the landing doc above) — the verification tier the original scoping doc
+ * (docs/serial-8250-translation-scoping-2026-07-18.md) always required
+ * before any live-console-adjacent swap, kept even though KUnit is skipped
+ * here. This exception is scoped to exactly these two functions; it is not
+ * a general loosening of this project's verification bar.
+ *
+ * Struct-marshalling shim, not bindgen: struct uart_port/uart_8250_port are
+ * large, deeply nested (embedded spinlock, function-pointer op tables,
+ * list_head, DMA/RS485 sub-structs) and this project has no bindgen bindings
+ * for them (confirmed: neither type appears in rust/bindings/bindings_helper.h
+ * anywhere in this tree). Generating full bindgen coverage for both structs
+ * so Rust could hold a real `*mut uart_port` and dereference fields directly
+ * would be a large, separate undertaking with its own correctness risk,
+ * architecturally out of proportion to this slice, and contrary to this project's established
+ * discipline (Tier A/B: never let Rust assume ownership/layout of a struct it
+ * doesn't own — see docs/8250-tier-b-scoping-2026-07-18.md's Mmio discussion
+ * for the same reasoning applied to `membase`). Instead: `port`/`up` stay
+ * opaque `*mut c_void` on the Rust side; every field read/write and every
+ * subsystem call the two C originals perform is exposed here as a plain,
+ * narrow, individually-auditable extern "C" shim function — a one-for-one
+ * mechanical mirror of each line of the original C body, not a
+ * reimplementation or simplification of any of it. Flag-bit tests
+ * (UPF_BUGGY_UART, UPF_SHARE_IRQ, UPF_FOURPORT — all `upf_t`, a
+ * project-internal bitflag type not part of any stable UAPI this project
+ * pins elsewhere, unlike Tier A's tcflag_t bits) are deliberately evaluated
+ * here in C rather than ported as Rust constants, so their width/encoding can
+ * never silently drift between the two languages; Rust only ever receives
+ * the already-evaluated boolean.
+ */
+
+bool serial8250_startup_rs_port_buggy_uart(struct uart_port *port)
+{
+	return port->flags & UPF_BUGGY_UART;
+}
+
+bool serial8250_startup_rs_port_share_irq(struct uart_port *port)
+{
+	return port->irq && (port->flags & UPF_SHARE_IRQ);
+}
+
+void serial8250_startup_rs_port_set_shared_irq(struct uart_port *port)
+{
+	port->irqflags |= IRQF_SHARED;
+}
+
+bool serial8250_startup_rs_port_fourport(struct uart_port *port)
+{
+	return port->flags & UPF_FOURPORT;
+}
+
+unsigned int serial8250_startup_rs_uart_config_fifo_size(struct uart_port *port)
+{
+	return uart_config[port->type].fifo_size;
+}
+
+unsigned int serial8250_startup_rs_uart_config_tx_loadsz(struct uart_port *port)
+{
+	return uart_config[port->type].tx_loadsz;
+}
+
+unsigned int serial8250_startup_rs_uart_config_flags(struct uart_port *port)
+{
+	return uart_config[port->type].flags;
+}
+
+unsigned int serial8250_startup_rs_get_fifosize(struct uart_port *port)
+{
+	return port->fifosize;
+}
+
+void serial8250_startup_rs_set_fifosize(struct uart_port *port, unsigned int v)
+{
+	port->fifosize = v;
+}
+
+unsigned int serial8250_startup_rs_get_tx_loadsz(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return up->tx_loadsz;
+}
+
+void serial8250_startup_rs_set_tx_loadsz(struct uart_port *port, unsigned int v)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	up->tx_loadsz = v;
+}
+
+unsigned int serial8250_startup_rs_get_capabilities(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return up->capabilities;
+}
+
+void serial8250_startup_rs_set_capabilities(struct uart_port *port, unsigned int v)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	up->capabilities = v;
+}
+
+void serial8250_startup_rs_set_mcr(struct uart_port *port, unsigned char v)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	up->mcr = v;
+}
+
+bool serial8250_startup_rs_iotype_changed(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return port->iotype != up->cur_iotype;
+}
+
+void serial8250_startup_rs_set_io_from_upio(struct uart_port *port)
+{
+	set_io_from_upio(port);
+}
+
+void serial8250_startup_rs_rpm_get(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	serial8250_rpm_get(up);
+}
+
+void serial8250_startup_rs_rpm_put(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	serial8250_rpm_put(up);
+}
+
+void serial8250_startup_rs_startup_special(struct uart_port *port)
+{
+	serial8250_startup_special(port);
+}
+
+void serial8250_startup_rs_clear_fifos(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	serial8250_clear_fifos(up);
+}
+
+void serial8250_startup_rs_clear_interrupts(struct uart_port *port)
+{
+	serial8250_clear_interrupts(port);
+}
+
+unsigned char serial8250_startup_rs_lsr_in(struct uart_port *port)
+{
+	return serial_port_in(port, UART_LSR);
+}
+
+void serial8250_startup_rs_lsr_safety_warn(struct uart_port *port)
+{
+	dev_info_ratelimited(port->dev, "LSR safety check engaged!\n");
+}
+
+void serial8250_startup_rs_set_TRG_levels(struct uart_port *port)
+{
+	serial8250_set_TRG_levels(port);
+}
+
+int serial8250_startup_rs_setup_irq(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return up->ops->setup_irq(up);
+}
+
+void serial8250_startup_rs_release_irq(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	up->ops->release_irq(up);
+}
+
+void serial8250_startup_rs_THRE_test(struct uart_port *port)
+{
+	serial8250_THRE_test(port);
+}
+
+void serial8250_startup_rs_setup_timer(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	up->ops->setup_timer(up);
+}
+
+void serial8250_startup_rs_initialize(struct uart_port *port)
+{
+	serial8250_initialize(port);
+}
+
+void serial8250_startup_rs_clear_saved_flags(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	up->lsr_saved_flags = 0;
+	up->msr_saved_flags = 0;
+}
+
+bool serial8250_startup_rs_has_dma(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return up->dma != NULL;
+}
+
+bool serial8250_startup_rs_is_console(struct uart_port *port)
+{
+	return uart_console(port);
+}
+
+bool serial8250_startup_rs_request_dma(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return serial8250_request_dma(up) != 0;
+}
+
+void serial8250_startup_rs_dma_forbidden_console(struct uart_port *port)
+{
+	dev_warn_ratelimited(port->dev, "%s\n", "forbid DMA for kernel console");
+}
+
+void serial8250_startup_rs_dma_request_failed(struct uart_port *port)
+{
+	dev_warn_ratelimited(port->dev, "%s\n", "failed to request DMA");
+}
+
+void serial8250_startup_rs_clear_dma(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	up->dma = NULL;
+}
+
+void serial8250_startup_rs_set_ier_rx_shadow(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	up->ier = UART_IER_RLSI | UART_IER_RDI;
+}
+
+void serial8250_startup_rs_fourport_enable_irq(struct uart_port *port)
+{
+	unsigned int icp;
+
+	icp = (port->iobase & 0xfe0) | 0x01f;
+	outb_p(0x80, icp);
+	inb_p(icp);
+}
+
+/* --- shutdown-specific shims (startup's shared shims above are reused) --- */
+
+void serial8250_startup_rs_ier_off_locked(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	guard(uart_port_lock_irqsave)(port);
+	up->ier = 0;
+	serial_port_out(port, UART_IER, 0);
+}
+
+void serial8250_startup_rs_synchronize_irq(struct uart_port *port)
+{
+	synchronize_irq(port->irq);
+}
+
+void serial8250_startup_rs_release_dma(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	serial8250_release_dma(up);
+}
+
+void serial8250_startup_rs_mctrl_reset_locked(struct uart_port *port)
+{
+	u32 lcr;
+
+	guard(uart_port_lock_irqsave)(port);
+
+	if (port->flags & UPF_FOURPORT) {
+		/* reset interrupts on the AST Fourport board */
+		inb((port->iobase & 0xfe0) | 0x1f);
+		port->mctrl |= TIOCM_OUT1;
+	} else {
+		port->mctrl &= ~TIOCM_OUT2;
+	}
+
+	serial8250_set_mctrl(port, port->mctrl);
+
+	/* Disable break condition */
+	lcr = serial_port_in(port, UART_LCR);
+	lcr &= ~UART_LCR_SBC;
+	serial_port_out(port, UART_LCR, lcr);
+}
+
+void serial8250_startup_rs_rsa_disable(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	rsa_disable(up);
+}
+
+void serial8250_startup_rs_rx_in(struct uart_port *port)
+{
+	serial_port_in(port, UART_RX);
+}
+
+extern int serial8250_do_startup_rs(struct uart_port *port);
+extern void serial8250_do_shutdown_rs(struct uart_port *port);
+
+int serial8250_do_startup(struct uart_port *port)
+{
+	return serial8250_do_startup_rs(port);
+}
+
+void serial8250_do_shutdown(struct uart_port *port)
+{
+	serial8250_do_shutdown_rs(port);
+}
+EXPORT_SYMBOL_GPL(serial8250_do_startup);
+EXPORT_SYMBOL_GPL(serial8250_do_shutdown);
+
+static int serial8250_startup(struct uart_port *port)
+{
+	if (port->startup)
+		return port->startup(port);
+	return serial8250_do_startup(port);
+}
+
+static void serial8250_shutdown(struct uart_port *port)
+{
+	if (port->shutdown)
+		port->shutdown(port);
+	else
+		serial8250_do_shutdown(port);
+}
+#else /* !CONFIG_RUST_8250_STARTUP */
 int serial8250_do_startup(struct uart_port *port)
 {
 	struct uart_8250_port *up = up_to_u8250p(port);
@@ -2441,6 +2809,7 @@ static void serial8250_shutdown(struct uart_port *port)
 	else
 		serial8250_do_shutdown(port);
 }
+#endif /* CONFIG_RUST_8250_STARTUP */
 
 static void serial8250_flush_buffer(struct uart_port *port)
 {

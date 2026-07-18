@@ -23,6 +23,15 @@ obj-$(CONFIG_SERIAL_8250)		+= 8250_base.o
 # untouched. This object exists purely to be reachable-and-unit-testable,
 # per that doc's gate, not to affect the live console path.
 8250_base-$(CONFIG_RUST)		+= 8250_io_rs.o
+# linux-rs: Tier C translation — serial8250_do_startup()/serial8250_do_shutdown()
+# control flow only, see docs/8250-tier-c-startup-shutdown-2026-07-18.md and
+# awto-au/linux-rs#25. Deliberately gated on CONFIG_RUST_8250_STARTUP, NOT
+# plain CONFIG_RUST: this wires into the LIVE .startup/.shutdown uart_ops
+# (unlike 8250_io_rs.o above, compiled-in but inert), has no KUnit coverage
+# (real IRQ-subsystem calls, no fake possible — see that doc), and needs an
+# independent on/off switch from Tier A/B's already-verified CONFIG_RUST
+# wiring so the two can be A/B boot-compared without disturbing each other.
+8250_base-$(CONFIG_RUST_8250_STARTUP)	+= 8250_startup_rs.o
 8250_base-$(CONFIG_SERIAL_8250_DMA)	+= 8250_dma.o
 8250_base-$(CONFIG_SERIAL_8250_DWLIB)	+= 8250_dwlib.o
 8250_base-$(CONFIG_SERIAL_8250_FINTEK)	+= 8250_fintek.o
