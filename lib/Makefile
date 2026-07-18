@@ -253,7 +253,7 @@ obj-$(CONFIG_SIGNATURE) += digsig.o
 lib-$(CONFIG_CLZ_TAB) += clz_tab.o
 
 obj-$(CONFIG_GENERIC_STRNCPY_FROM_USER) += strncpy_from_user.o
-obj-$(CONFIG_GENERIC_STRNLEN_USER) += strnlen_user.o
+obj-$(CONFIG_GENERIC_STRNLEN_USER) +=
 
 obj-$(CONFIG_GENERIC_NET_UTILS) += net_utils.o
 
@@ -475,4 +475,11 @@ ifdef CONFIG_RUST
 lib-y += iomem_copy_rs.o
 else
 lib-y += iomem_copy.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-$(CONFIG_GENERIC_STRNLEN_USER) += strnlen_user_rs.o
+else
+obj-$(CONFIG_GENERIC_STRNLEN_USER) += strnlen_user.o
 endif
