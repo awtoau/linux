@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 //! Generic memory-mapped I/O helpers — Rust translation of `lib/iomem_copy.c`.
 //!
 //! Word-at-a-time `__iomem` set/copy: handle any unaligned lead-in bytes one
