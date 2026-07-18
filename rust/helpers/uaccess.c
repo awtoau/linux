@@ -107,3 +107,35 @@ __rust_helper bool rust_helper_unsafe_get_user_u8(unsigned char *val,
 efault:
 	return false;
 }
+
+/*
+ * lib/usercopy.c support: _copy_from_user()/_copy_to_user() are thin
+ * out-of-line bodies (compiled whenever INLINE_COPY_USER is NOT
+ * defined -- true for this riscv64/MMU build, see
+ * lib/usercopy_rs.rs's module doc) that call the real
+ * _inline_copy_from_user()/_inline_copy_to_user() `static inline`
+ * functions declared in include/linux/uaccess.h. Those inlines are
+ * not separate linkable C symbols, so they cannot be `bindings::`'d
+ * directly -- these two shims call them unchanged (rule 0014: leave
+ * config/arch-sensitive logic compiled in C, one shim per callee)
+ * rather than re-deriving might_fault/should_fail_usercopy/
+ * can_do_masked_user_access/access_ok/barrier_nospec/
+ * raw_copy_from_user/instrument_copy_from_user_* in Rust, which is
+ * out of this TU's scope. Distinct from the existing
+ * rust_helper__copy_from_user/_to_user above, which are gated
+ * `#ifdef INLINE_COPY_USER` (the opposite, unused arm for this
+ * build) and call the exact same inline functions from the exact
+ * opposite config arm -- kept separate rather than merged so each
+ * shim's #ifdef matches the C source's own condition precisely.
+ */
+__rust_helper unsigned long
+rust_helper_inline_copy_from_user(void *to, const void __user *from, unsigned long n)
+{
+	return _inline_copy_from_user(to, from, n);
+}
+
+__rust_helper unsigned long
+rust_helper_inline_copy_to_user(void __user *to, const void *from, unsigned long n)
+{
+	return _inline_copy_to_user(to, from, n);
+}

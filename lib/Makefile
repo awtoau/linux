@@ -63,8 +63,15 @@ obj-y += debug_locks.o random32.o \
 	 uuid.o iov_iter.o clz_ctz.o \
 	 bsearch.o lwq.o kfifo.o \
 	 percpu-refcount.o rhashtable.o \
-	 once.o refcount.o rcuref.o usercopy.o errseq.o bucket_locks.o \
+	 once.o refcount.o rcuref.o errseq.o bucket_locks.o \
 	 generic-radix-tree.o kasprintf.o
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += usercopy_rs.o
+else
+obj-y += usercopy.o
+endif
 
 # linux-rs: PARTIAL translation — bitmap.c always builds (it still owns
 # the allocator-touching functions: bitmap_alloc/bitmap_free/
