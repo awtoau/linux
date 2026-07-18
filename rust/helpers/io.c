@@ -107,6 +107,42 @@ __rust_helper void rust_helper_writeq_relaxed(u64 value, void __iomem *addr)
 }
 #endif
 
+// Raw (unordered, no endian swap) MMIO accessors, distinct from the ordered
+// readb/writeb family above — lib/iomem_copy.c's memset_io/memcpy_fromio/
+// memcpy_toio address I/O memory word-at-a-time via these, not the ordered
+// accessors, so they need their own shims rather than reusing readb/writeb.
+__rust_helper u8 rust_helper_raw_readb(const volatile void __iomem *addr)
+{
+	return __raw_readb(addr);
+}
+
+__rust_helper u32 rust_helper_raw_readl(const volatile void __iomem *addr)
+{
+	return __raw_readl(addr);
+}
+
+__rust_helper void rust_helper_raw_writeb(u8 value, volatile void __iomem *addr)
+{
+	__raw_writeb(value, addr);
+}
+
+__rust_helper void rust_helper_raw_writel(u32 value, volatile void __iomem *addr)
+{
+	__raw_writel(value, addr);
+}
+
+#ifdef CONFIG_64BIT
+__rust_helper u64 rust_helper_raw_readq(const volatile void __iomem *addr)
+{
+	return __raw_readq(addr);
+}
+
+__rust_helper void rust_helper_raw_writeq(u64 value, volatile void __iomem *addr)
+{
+	__raw_writeq(value, addr);
+}
+#endif
+
 __rust_helper resource_size_t rust_helper_resource_size(struct resource *res)
 {
 	return resource_size(res);

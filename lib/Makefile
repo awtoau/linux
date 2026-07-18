@@ -40,7 +40,7 @@ lib-y := ctype.o string.o vsprintf.o \
 	 is_single_threaded.o plist.o kobject_uevent.o \
  seq_buf.o siphash.o dec_and_lock.o \
 	 nmi_backtrace.o \
-	 buildid.o objpool.o iomem_copy.o sys_info.o
+	 buildid.o objpool.o sys_info.o
 
 lib-$(CONFIG_UNION_FIND) += union_find.o
 lib-$(CONFIG_PRINTK) += dump_stack.o
@@ -468,4 +468,11 @@ endif
 obj-y += bitmap-str.o
 ifdef CONFIG_RUST
 obj-y += bitmap-str_rs.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += iomem_copy_rs.o
+else
+lib-y += iomem_copy.o
 endif
