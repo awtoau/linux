@@ -2987,6 +2987,39 @@ static int serial8250_request_port(struct uart_port *port)
 	return serial8250_request_std_resource(up);
 }
 
+#ifdef CONFIG_RUST
+/* linux-rs: translated TU — drivers/tty/serial/8250/8250_helpers_rs.rs.
+ * Oracle-verified byte-identical against bench/diff_8250_helpers.{c,rs}
+ * over 7500 generated (cfg, fcr)/(cfg, bytes) cases; see
+ * docs/serial-8250-translation-scoping-2026-07-18.md for provenance.
+ * uart_config[] itself is NOT ported to Rust (~25 entries incl. a
+ * `const char *name` field read throughout this file well beyond these
+ * two functions) — instead the C wrapper resolves the port type's
+ * rxtrig_bytes[] slice, same as the original C body did, and passes a
+ * pointer to it across the FFI boundary. See issue #3 / that doc for why
+ * this is the deliberately less-invasive of the two options considered
+ * (the other being a full uart_config[] port). Both call sites
+ * (do_get_rxtrig, do_set_rxtrig below) are unchanged: only these two
+ * function bodies differ, same "swap the body only" shape used for
+ * serial8250_compute_lcr() above.
+ */
+extern int fcr_get_rxtrig_bytes_rs(const unsigned char *rxtrig_bytes, unsigned char fcr);
+extern int bytes_to_fcr_rxtrig_rs(const unsigned char *rxtrig_bytes, unsigned char bytes);
+
+static int fcr_get_rxtrig_bytes(struct uart_8250_port *up)
+{
+	const struct serial8250_config *conf_type = &uart_config[up->port.type];
+
+	return fcr_get_rxtrig_bytes_rs(conf_type->rxtrig_bytes, up->fcr);
+}
+
+static int bytes_to_fcr_rxtrig(struct uart_8250_port *up, unsigned char bytes)
+{
+	const struct serial8250_config *conf_type = &uart_config[up->port.type];
+
+	return bytes_to_fcr_rxtrig_rs(conf_type->rxtrig_bytes, bytes);
+}
+#else
 static int fcr_get_rxtrig_bytes(struct uart_8250_port *up)
 {
 	const struct serial8250_config *conf_type = &uart_config[up->port.type];
@@ -3013,6 +3046,7 @@ static int bytes_to_fcr_rxtrig(struct uart_8250_port *up, unsigned char bytes)
 
 	return UART_FCR_R_TRIG_11;
 }
+#endif
 
 static int do_get_rxtrig(struct tty_port *port)
 {
