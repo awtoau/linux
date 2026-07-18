@@ -15,6 +15,14 @@ obj-$(CONFIG_SERIAL_8250)		+= 8250_base.o
 # still builds from C either way; this just adds the Rust object it calls
 # into under CONFIG_RUST.
 8250_base-$(CONFIG_RUST)		+= 8250_helpers_rs.o
+# linux-rs: Tier B translation — mem_serial_in()/mem_serial_out() only, see
+# docs/8250-tier-b-scoping-2026-07-18.md. Compiled in and KUnit-tested
+# (rust_8250_mem_serial_io suite, self-registers via .kunit_test_suites)
+# but NOT called from anywhere in 8250_port.c: set_io_from_upio() still
+# wires p->serial_in/p->serial_out to the C mem_serial_in/mem_serial_out,
+# untouched. This object exists purely to be reachable-and-unit-testable,
+# per that doc's gate, not to affect the live console path.
+8250_base-$(CONFIG_RUST)		+= 8250_io_rs.o
 8250_base-$(CONFIG_SERIAL_8250_DMA)	+= 8250_dma.o
 8250_base-$(CONFIG_SERIAL_8250_DWLIB)	+= 8250_dwlib.o
 8250_base-$(CONFIG_SERIAL_8250_FINTEK)	+= 8250_fintek.o
