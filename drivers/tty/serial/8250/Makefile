@@ -32,6 +32,15 @@ obj-$(CONFIG_SERIAL_8250)		+= 8250_base.o
 # independent on/off switch from Tier A/B's already-verified CONFIG_RUST
 # wiring so the two can be A/B boot-compared without disturbing each other.
 8250_base-$(CONFIG_RUST_8250_STARTUP)	+= 8250_startup_rs.o
+# linux-rs: Tier C translation — serial8250_handle_irq_locked() control flow
+# only, see docs/8250-tier-c-irq-2026-07-18.md and awto-au/linux-rs#25.
+# Deliberately gated on CONFIG_RUST_8250_IRQ, its own independent switch
+# from CONFIG_RUST and CONFIG_RUST_8250_STARTUP: this wires into the LIVE
+# IRQ RX/TX dispatch path (runs on every interrupt, not just bring-up/
+# teardown), has no KUnit coverage (real hardware/DMA/pm-wakeup calls, no
+# fake possible — see that doc), and needs an independent on/off switch so
+# each Tier C slice can be A/B boot-compared without disturbing the others.
+8250_base-$(CONFIG_RUST_8250_IRQ)	+= 8250_irq_rs.o
 8250_base-$(CONFIG_SERIAL_8250_DMA)	+= 8250_dma.o
 8250_base-$(CONFIG_SERIAL_8250_DWLIB)	+= 8250_dwlib.o
 8250_base-$(CONFIG_SERIAL_8250_FINTEK)	+= 8250_fintek.o

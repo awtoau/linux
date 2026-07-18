@@ -54,6 +54,26 @@ config RUST_8250_STARTUP
 	  If unsure, say N: the unmodified C serial8250_do_startup/_do_shutdown
 	  remain the default and are functionally identical either way.
 
+config RUST_8250_IRQ
+	bool "Rust translation of serial8250_handle_irq_locked"
+	depends on SERIAL_8250 && RUST
+	default n
+	help
+	  Build and wire the Rust translation of
+	  serial8250_handle_irq_locked() (linux-rs Tier C, see
+	  docs/8250-tier-c-irq-2026-07-18.md in the linux-rs tree) into this
+	  driver's live IRQ RX/TX dispatch path. Deliberately a separate
+	  knob from CONFIG_RUST and CONFIG_RUST_8250_STARTUP: this function
+	  runs on every live interrupt (not just device bring-up/teardown)
+	  and asserts lockdep_assert_held_once() against the real port
+	  lock, with no KUnit-fakeable substitute, so it needs its own
+	  independently toggleable switch for a clean A/B boot-transcript
+	  comparison against the untouched C path without disturbing Tier
+	  A/B or the startup/shutdown slice's own already-verified wiring.
+
+	  If unsure, say N: the unmodified C serial8250_handle_irq_locked
+	  remains the default and is functionally identical either way.
+
 config SERIAL_8250_PNP
 	bool "8250/16550 PNP device support" if EXPERT
 	depends on SERIAL_8250 && PNP

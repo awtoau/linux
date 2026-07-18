@@ -1785,6 +1785,170 @@ static bool handle_rx_dma(struct uart_8250_port *up, unsigned int iir)
 	return up->dma->rx_dma(up);
 }
 
+#ifdef CONFIG_RUST_8250_IRQ
+/* linux-rs: Tier C translation — serial8250_handle_irq_locked() control
+ * flow, see docs/8250-tier-c-irq-2026-07-18.md (linux-rs repo) and
+ * awto-au/linux-rs#25. This is the third Tier C slice, HIGHER RISK than the
+ * serial8250_do_startup/serial8250_do_shutdown slice that landed earlier
+ * the same day (docs/8250-tier-c-startup-shutdown-2026-07-18.md): this
+ * function runs on *every* live interrupt, not just device bring-up/
+ * teardown, and lockdep_assert_held_once(&port->lock) asserts against the
+ * real port lock the caller already holds.
+ *
+ * NO KUNIT COVERAGE, BY DESIGN, NOT AN OMISSION, SEPARATELY RE-CONFIRMED
+ * FOR THIS FUNCTION (the startup/shutdown slice's exception was explicitly
+ * scoped to exactly those two functions and does not carry over
+ * automatically): serial8250_rx_chars()/serial8250_tx_chars()/
+ * serial8250_modem_status()/__stop_tx()/handle_rx_dma()/
+ * serial8250_clear_and_reinit_fifos() (all still C, unmodified, called via
+ * the shims below) touch real UART hardware registers, real DMA state, and
+ * (via pm_wakeup_event()) the real power-management wakeup subsystem — none
+ * of this is meaningfully fakeable without reimplementing genuine subsystem
+ * behavior inside a test, which would verify the fake against itself, not
+ * the driver against anything real. Gated instead on a byte-for-byte
+ * side-by-side boot-transcript comparison against the unmodified C path,
+ * using MORE repeat boots than the startup/shutdown slice given the
+ * elevated risk class — see the landing doc above for the actual
+ * comparison results.
+ *
+ * Struct-marshalling shim, not bindgen, for the same reasons as the
+ * startup/shutdown slice: struct uart_port/uart_8250_port have no bindgen
+ * bindings anywhere in this tree. port/up stay opaque *mut c_void on the
+ * Rust side; every field read/write and subsystem call the C original
+ * performs is exposed here as a narrow, individually-auditable extern "C"
+ * shim function — a one-for-one mechanical mirror of each line of the
+ * original C body. UART_LSR_/UPSTAT_/UART_IER_ bit tests are evaluated
+ * here in C rather than ported as Rust constants (UPSTAT_* is a
+ * project-internal upstat_t bitflag type, not a stable UAPI pin, same
+ * reasoning the startup/shutdown slice applied to upf_t); only the
+ * resulting bool/u16 crosses the FFI boundary.
+ */
+
+void serial8250_irq_rs_lockdep_assert_held(struct uart_port *port)
+{
+	lockdep_assert_held_once(&port->lock);
+}
+
+u16 serial8250_irq_rs_lsr_in(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return serial_lsr_in(up);
+}
+
+bool serial8250_irq_rs_dr_clear_fifoe_set(struct uart_port *port, u16 status)
+{
+	return !(status & UART_LSR_DR) && (status & UART_LSR_FIFOE);
+}
+
+void serial8250_irq_rs_clear_and_reinit_fifos(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	serial8250_clear_and_reinit_fifos(up);
+}
+
+bool serial8250_irq_rs_skip_rx_check(struct uart_port *port, u16 status)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return !(status & (UART_LSR_FIFOE | UART_LSR_BRK_ERROR_BITS)) &&
+		(port->status & (UPSTAT_AUTOCTS | UPSTAT_AUTORTS)) &&
+		!(up->ier & (UART_IER_RLSI | UART_IER_RDI));
+}
+
+bool serial8250_irq_rs_dr_or_bi(struct uart_port *port, u16 status)
+{
+	return status & (UART_LSR_DR | UART_LSR_BI);
+}
+
+void serial8250_irq_rs_wakeup_event(struct uart_port *port)
+{
+	struct tty_port *tport = &port->state->port;
+	struct irq_data *d;
+
+	d = irq_get_irq_data(port->irq);
+	if (d && irqd_is_wakeup_set(d))
+		pm_wakeup_event(tport->tty->dev, 0);
+}
+
+bool serial8250_irq_rs_has_dma(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return up->dma != NULL;
+}
+
+bool serial8250_irq_rs_handle_rx_dma(struct uart_port *port, unsigned int iir)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return handle_rx_dma(up, iir);
+}
+
+u16 serial8250_irq_rs_rx_chars(struct uart_port *port, u16 status)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return serial8250_rx_chars(up, status);
+}
+
+void serial8250_irq_rs_modem_status(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	serial8250_modem_status(up);
+}
+
+bool serial8250_irq_rs_thre_and_thri(struct uart_port *port, u16 status)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return (status & UART_LSR_THRE) && (up->ier & UART_IER_THRI);
+}
+
+bool serial8250_irq_rs_dma_tx_err(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return !up->dma || up->dma->tx_err;
+}
+
+void serial8250_irq_rs_tx_chars(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	serial8250_tx_chars(up);
+}
+
+bool serial8250_irq_rs_dma_tx_running(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	return up->dma->tx_running;
+}
+
+void serial8250_irq_rs_stop_tx(struct uart_port *port)
+{
+	struct uart_8250_port *up = up_to_u8250p(port);
+
+	__stop_tx(up);
+}
+
+extern void serial8250_handle_irq_locked_rs(struct uart_port *port, unsigned int iir);
+
+/*
+ * Context: port's lock must be held by the caller. The caller must
+ * release it via guard(uart_port_lock_check_sysrq_irqsave) or
+ * uart_unlock_and_check_sysrq_irqrestore(), which captures SysRq
+ * character on unlock.
+ */
+void serial8250_handle_irq_locked(struct uart_port *port, unsigned int iir)
+{
+	serial8250_handle_irq_locked_rs(port, iir);
+}
+EXPORT_SYMBOL_NS_GPL(serial8250_handle_irq_locked, "SERIAL_8250");
+#else /* !CONFIG_RUST_8250_IRQ */
 /*
  * Context: port's lock must be held by the caller. The caller must
  * release it via guard(uart_port_lock_check_sysrq_irqsave) or
@@ -1840,6 +2004,7 @@ void serial8250_handle_irq_locked(struct uart_port *port, unsigned int iir)
 	}
 }
 EXPORT_SYMBOL_NS_GPL(serial8250_handle_irq_locked, "SERIAL_8250");
+#endif /* CONFIG_RUST_8250_IRQ */
 
 /*
  * This handles the interrupt from one port.
