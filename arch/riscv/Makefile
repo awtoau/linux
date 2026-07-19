@@ -77,9 +77,13 @@ endif
 
 # Check if the toolchain supports Zacas
 riscv-march-$(CONFIG_TOOLCHAIN_HAS_ZACAS) := $(riscv-march-y)_zacas
+KBUILD_RUSTFLAGS-$(CONFIG_TOOLCHAIN_HAS_ZACAS) += -Ctarget-feature=+zacas
 
 # Check if the toolchain supports Zabha
 riscv-march-$(CONFIG_TOOLCHAIN_HAS_ZABHA) := $(riscv-march-y)_zabha
+KBUILD_RUSTFLAGS-$(CONFIG_TOOLCHAIN_HAS_ZABHA) += -Ctarget-feature=+zabha
+
+KBUILD_RUSTFLAGS += $(KBUILD_RUSTFLAGS-y)
 
 KBUILD_BASE_ISA = -march=$(shell echo $(riscv-march-y) | sed -E 's/(rv32ima|rv64ima)fd([^v_]*)v?/\1\2/')
 export KBUILD_BASE_ISA
