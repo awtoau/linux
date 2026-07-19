@@ -1043,7 +1043,7 @@ out:
  * Legacy naming scheme used for virtio devices.  We are stuck with it for
  * virtio blk but don't ever use it for any new driver.
  */
-static int virtblk_name_format(char *prefix, int index, char *buf, int buflen)
+static int virtblk_name_format(const char *prefix, int index, char *buf, int buflen)
 {
 	const int base = 'z' - 'a' + 1;
 	char *begin = buf + strlen(prefix);
