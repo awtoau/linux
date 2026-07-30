@@ -373,6 +373,9 @@ unsafe fn bitmap_read8(map: *const c_ulong, start: usize) -> c_ulong {
 /// calling our own slow-path fns directly reproduces the same value.
 /// `bitmap_weight`/`get_random_u32_below` remain real cross-TU C calls —
 /// `lib/bitmap.c` and `drivers/char/random.c` are not yet translated.
+/// TODO_LINUX_RS: track unresolved cross-TU dependencies for
+/// `__bitmap_weight` and `__get_random_u32_below` until their source TUs
+/// are translated or explicitly designated permanent extern dependencies.
 #[export]
 pub unsafe extern "C" fn find_random_bit(addr: *const c_ulong, size: c_ulong) -> c_ulong {
     // SAFETY: `__bitmap_weight` shares find_bit's addr/size contract.

@@ -13,6 +13,9 @@ use kernel::prelude::*;
 /// real `_ctype[]` table) — called as a real cross-TU data symbol
 /// (`lib/ctype.c` is not yet translated) rather than reimplementing the
 /// 256-entry table by hand (rule 0021, applied to data instead of a fn).
+/// TODO_LINUX_RS: track unresolved cross-TU dependency on `_ctype` from
+/// `lib/ctype.c` until that TU is translated or a permanent policy is
+/// documented for this symbol.
 #[inline]
 fn is_space(c: u8) -> bool {
     const CT_SPACE: u8 = 0x20; // `_S` in <linux/ctype.h>
