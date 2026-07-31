@@ -374,11 +374,11 @@ unsafe fn bitmap_read8(map: *const c_ulong, start: usize) -> c_ulong {
 /// `__bitmap_weight` is now backed by translated Rust (`lib/bitmap_rs.rs`
 /// — `lib/bitmap.c` landed before this marker was last updated), reached
 /// via the same `bindings::` FFI symbol either side of that swap.
-/// `__get_random_u32_below` remains a real cross-TU C call —
-/// `drivers/char/random.c` is not yet translated.
-/// TODO_LINUX_RS: track the unresolved cross-TU dependency on
-/// `__get_random_u32_below` until `drivers/char/random.c` is translated
-/// or explicitly designated a permanent extern dependency.
+/// `__get_random_u32_below` remains a real cross-TU C call into
+/// `drivers/char/random.c` — a deliberate PERMANENT dependency (rule
+/// 0021's `[status]` note, issue linux-rs#48): that file is a
+/// 1712-line security-critical CSPRNG driver, translating it just to
+/// resolve this one call site would be disproportionate scope/risk.
 #[export]
 pub unsafe extern "C" fn find_random_bit(addr: *const c_ulong, size: c_ulong) -> c_ulong {
     // SAFETY: `__bitmap_weight` shares find_bit's addr/size contract.
