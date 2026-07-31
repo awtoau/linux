@@ -35,6 +35,15 @@ obj-$(CONFIG_RUST) += exports.o
 
 always-$(CONFIG_RUST) += libproc_macro2.rlib libquote.rlib libsyn.rlib
 
+# c2rust's raw transpile output can reference c2rust_bitfields (for any C
+# struct with bitfields anywhere in the TU's transitive include chain) and
+# c2rust_asm_casts (inline-asm operand casting helpers) — see linux-rs#55.
+# Built once here, unconditionally under CONFIG_RUST, the same way
+# libproc_macro2/libquote/libsyn are: cheap (small crates), and having
+# them always available means no per-TU opt-in bookkeeping for whether a
+# given file's transpile output happens to need them.
+always-$(CONFIG_RUST) += libc2rust_bitfields.rlib libc2rust_asm_casts.rlib
+
 always-$(CONFIG_RUST_KERNEL_DOCTESTS) += doctests_kernel_generated.rs
 always-$(CONFIG_RUST_KERNEL_DOCTESTS) += doctests_kernel_generated_kunit.c
 
@@ -55,8 +64,9 @@ procmacro-extension := $(patsubst libname.%,%,$(call procmacro-name,name))
 libzerocopy_derive_name := $(call procmacro-name,zerocopy_derive)
 libmacros_name := $(call procmacro-name,macros)
 libpin_init_internal_name := $(call procmacro-name,pin_init_internal)
+libc2rust_bitfields_derive_name := $(call procmacro-name,c2rust_bitfields_derive)
 
-always-$(CONFIG_RUST) += $(libzerocopy_derive_name) $(libmacros_name) $(libpin_init_internal_name)
+always-$(CONFIG_RUST) += $(libzerocopy_derive_name) $(libmacros_name) $(libpin_init_internal_name) $(libc2rust_bitfields_derive_name)
 
 # `$(rust_flags)` is passed in case the user added `--sysroot`.
 rustc_sysroot := $(shell MAKEFLAGS= $(RUSTC) $(rust_flags) --print sysroot)
@@ -150,6 +160,25 @@ pin_init_internal-flags := \
     --extern quote \
     --extern syn \
     $(call cfgs-to-flags,$(pin_init_internal-cfgs))
+
+# c2rust-bitfields (plain rlib, no proc-macro deps of its own beyond
+# re-exporting its derive crate) and c2rust-bitfields-derive (proc-macro,
+# same syn/quote/proc-macro2 dependency shape as zerocopy_derive above)
+# and c2rust-asm-casts (plain no_std rlib, no dependencies at all) — see
+# linux-rs#55.
+c2rust_bitfields-flags := \
+    --cap-lints=allow \
+    --cfg feature=\"no_std\" \
+    --extern c2rust_bitfields_derive
+
+c2rust_bitfields_derive-flags := \
+    --cap-lints=allow \
+    --extern proc_macro2 \
+    --extern quote \
+    --extern syn
+
+c2rust_asm_casts-flags := \
+    --cap-lints=allow
 
 pin_init-cfgs := \
     kernel USE_RUSTC_FEATURES
@@ -583,6 +612,25 @@ quiet_cmd_rustc_procmacrolibrary = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_Q
 		--out-dir $(objtree)/$(obj) -L$(objtree)/$(obj) \
 		--crate-name $(patsubst lib%.rlib,%,$(notdir $@)) $<
 
+# Unlike rustc_procmacrolibrary above (host-native — correct for syn/
+# quote/proc-macro2, which only ever run at macro-expansion time on the
+# build host), a standalone rlib that gets --extern-linked into real
+# kernel TUs must be compiled for the KERNEL's target triple
+# (riscv64imac-unknown-none-elf, via KBUILD_RUSTFLAGS), not the host —
+# see linux-rs#55 (E0461 "couldn't find crate ... with expected target
+# triple" was the direct symptom of getting this rule wrong the first
+# time, i.e. accidentally reusing rustc_procmacrolibrary for these).
+quiet_cmd_rustc_targetlibrary = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) TL $@
+      cmd_rustc_targetlibrary = \
+	$(if $(skip_clippy),$(RUSTC),$(RUSTC_OR_CLIPPY)) \
+		$(filter-out $(skip_flags),$(KBUILD_RUSTFLAGS) $(rustc_target_flags)) \
+		-Zallow-features=$(rust_allowed_features) \
+		-Zcrate-attr=no_std \
+		--emit=dep-info=$(depfile) --emit=link=$@ --crate-type rlib -O \
+		--sysroot=/dev/null \
+		--out-dir $(objtree)/$(obj) -L$(objtree)/$(obj) -L $(objtree)/rust/ \
+		--crate-name $(patsubst lib%.rlib,%,$(notdir $@)) $<
+
 $(obj)/libproc_macro2.rlib: private skip_clippy = 1
 $(obj)/libproc_macro2.rlib: private rustc_target_flags = $(proc_macro2-flags)
 $(obj)/libproc_macro2.rlib: $(src)/proc-macro2/lib.rs FORCE
@@ -598,6 +646,17 @@ $(obj)/libsyn.rlib: private skip_clippy = 1
 $(obj)/libsyn.rlib: private rustc_target_flags = $(syn-flags)
 $(obj)/libsyn.rlib: $(src)/syn/lib.rs $(obj)/libquote.rlib FORCE
 	+$(call if_changed_dep,rustc_procmacrolibrary)
+
+$(obj)/libc2rust_bitfields.rlib: private skip_clippy = 1
+$(obj)/libc2rust_bitfields.rlib: private rustc_target_flags = $(c2rust_bitfields-flags)
+$(obj)/libc2rust_bitfields.rlib: $(src)/c2rust-bitfields/src/lib.rs \
+    $(obj)/$(libc2rust_bitfields_derive_name) FORCE
+	+$(call if_changed_dep,rustc_targetlibrary)
+
+$(obj)/libc2rust_asm_casts.rlib: private skip_clippy = 1
+$(obj)/libc2rust_asm_casts.rlib: private rustc_target_flags = $(c2rust_asm_casts-flags)
+$(obj)/libc2rust_asm_casts.rlib: $(src)/c2rust-asm-casts/src/lib.rs FORCE
+	+$(call if_changed_dep,rustc_targetlibrary)
 
 quiet_cmd_rustc_procmacro = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) P $@
       cmd_rustc_procmacro = \
@@ -621,6 +680,12 @@ $(obj)/$(libmacros_name): private rustc_target_flags = \
     --extern proc_macro2 --extern quote --extern syn
 $(obj)/$(libmacros_name): $(src)/macros/lib.rs $(obj)/libproc_macro2.rlib \
     $(obj)/libquote.rlib $(obj)/libsyn.rlib FORCE
+	+$(call if_changed_dep,rustc_procmacro)
+
+$(obj)/$(libc2rust_bitfields_derive_name): private skip_clippy = 1
+$(obj)/$(libc2rust_bitfields_derive_name): private rustc_target_flags = $(c2rust_bitfields_derive-flags)
+$(obj)/$(libc2rust_bitfields_derive_name): $(src)/c2rust-bitfields-derive/src/lib.rs \
+    $(obj)/libproc_macro2.rlib $(obj)/libquote.rlib $(obj)/libsyn.rlib FORCE
 	+$(call if_changed_dep,rustc_procmacro)
 
 $(obj)/$(libpin_init_internal_name): private rustc_target_flags = $(pin_init_internal-flags)
