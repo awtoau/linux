@@ -33,7 +33,7 @@ KASAN_SANITIZE_string.o := n
 CFLAGS_string.o += -fno-stack-protector
 endif
 
-lib-y := ctype.o string.o vsprintf.o \
+lib-y := string.o vsprintf.o \
 	 rbtree.o radix-tree.o timerqueue.o xarray.o \
 	 maple_tree.o idr.o extable.o irq_regs.o \
 	 flex_proportions.o ratelimit.o \
@@ -41,6 +41,13 @@ lib-y := ctype.o string.o vsprintf.o \
  seq_buf.o siphash.o dec_and_lock.o \
 	 nmi_backtrace.o \
 	 buildid.o objpool.o sys_info.o
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += ctype_rs.o
+else
+lib-y += ctype.o
+endif
 
 lib-$(CONFIG_UNION_FIND) += union_find.o
 lib-$(CONFIG_PRINTK) += dump_stack.o
