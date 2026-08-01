@@ -650,12 +650,13 @@ $(obj)/libsyn.rlib: $(src)/syn/lib.rs $(obj)/libquote.rlib FORCE
 $(obj)/libc2rust_bitfields.rlib: private skip_clippy = 1
 $(obj)/libc2rust_bitfields.rlib: private rustc_target_flags = $(c2rust_bitfields-flags)
 $(obj)/libc2rust_bitfields.rlib: $(src)/c2rust-bitfields/src/lib.rs \
-    $(obj)/$(libc2rust_bitfields_derive_name) FORCE
+    $(obj)/$(libc2rust_bitfields_derive_name) $(obj)/core.o $(obj)/compiler_builtins.o FORCE
 	+$(call if_changed_dep,rustc_targetlibrary)
 
 $(obj)/libc2rust_asm_casts.rlib: private skip_clippy = 1
 $(obj)/libc2rust_asm_casts.rlib: private rustc_target_flags = $(c2rust_asm_casts-flags)
-$(obj)/libc2rust_asm_casts.rlib: $(src)/c2rust-asm-casts/src/lib.rs FORCE
+$(obj)/libc2rust_asm_casts.rlib: $(src)/c2rust-asm-casts/src/lib.rs \
+    $(obj)/core.o $(obj)/compiler_builtins.o FORCE
 	+$(call if_changed_dep,rustc_targetlibrary)
 
 quiet_cmd_rustc_procmacro = $(if $(skip_clippy),RUSTC,$(RUSTC_OR_CLIPPY_QUIET)) P $@
