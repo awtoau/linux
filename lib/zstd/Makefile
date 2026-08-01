@@ -39,12 +39,6 @@ zstd_common-y := \
 		zstd_common_module.o \
 		common/debug.o \
 		common/entropy_common.o \
+		common/error_private.o \
 		common/fse_decompress.o \
 		common/zstd_common.o \
-
-# linux-rs: translated TU — Rust when Rust is available.
-ifdef CONFIG_RUST
-zstd_common-y += common/error_private_rs.o
-else
-zstd_common-y += common/error_private.o
-endif
