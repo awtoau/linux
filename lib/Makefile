@@ -259,12 +259,7 @@ obj-$(CONFIG_CLOSURES) += closure.o
 
 obj-$(CONFIG_DQL) += dynamic_queue_limits.o
 
-# linux-rs: translated TU — Rust when Rust is available.
-ifdef CONFIG_RUST
-obj-$(CONFIG_GLOB) += glob_rs.o
-else
 obj-$(CONFIG_GLOB) += glob.o
-endif
 
 obj-$(CONFIG_DIMLIB) += dim/
 obj-$(CONFIG_SIGNATURE) += digsig.o
