@@ -11,13 +11,11 @@ use kernel::prelude::*;
 
 /// C: `isspace(c)` (`<linux/ctype.h>`, function-like macro reading the
 /// real `_ctype[]` table) — called as a real cross-TU data symbol
-/// rather than reimplementing the 256-entry table by hand (rule 0021,
-/// applied to data instead of a fn). `lib/ctype.c` is now translated
-/// (`lib/ctype_rs.rs`, issue linux-rs#48) — `bindings::_ctype` still
-/// resolves correctly (it's the same FFI-linked symbol either side of
-/// the swap; there is no direct Rust-to-Rust call mechanism across
-/// separate `lib/*_rs.rs` translation units in this tree, each compiles
-/// as its own kernel object).
+/// (`lib/ctype.c` is not yet translated) rather than reimplementing the
+/// 256-entry table by hand (rule 0021, applied to data instead of a fn).
+/// TODO_LINUX_RS: track unresolved cross-TU dependency on `_ctype` from
+/// `lib/ctype.c` until that TU is translated or a permanent policy is
+/// documented for this symbol.
 #[inline]
 fn is_space(c: u8) -> bool {
     const CT_SPACE: u8 = 0x20; // `_S` in <linux/ctype.h>
