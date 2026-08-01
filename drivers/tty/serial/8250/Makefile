@@ -10,37 +10,6 @@ obj-$(CONFIG_SERIAL_8250)		+= 8250.o
 
 obj-$(CONFIG_SERIAL_8250)		+= 8250_base.o
 8250_base-y				:= 8250_port.o
-# linux-rs: translated TU (partial) — serial8250_compute_lcr() only, see
-# docs/serial-8250-translation-scoping-2026-07-18.md. 8250_port.o itself
-# still builds from C either way; this just adds the Rust object it calls
-# into under CONFIG_RUST.
-8250_base-$(CONFIG_RUST)		+= 8250_helpers_rs.o
-# linux-rs: Tier B translation — mem_serial_in()/mem_serial_out() only, see
-# docs/8250-tier-b-scoping-2026-07-18.md. Compiled in and KUnit-tested
-# (rust_8250_mem_serial_io suite, self-registers via .kunit_test_suites)
-# but NOT called from anywhere in 8250_port.c: set_io_from_upio() still
-# wires p->serial_in/p->serial_out to the C mem_serial_in/mem_serial_out,
-# untouched. This object exists purely to be reachable-and-unit-testable,
-# per that doc's gate, not to affect the live console path.
-8250_base-$(CONFIG_RUST)		+= 8250_io_rs.o
-# linux-rs: Tier C translation — serial8250_do_startup()/serial8250_do_shutdown()
-# control flow only, see docs/8250-tier-c-startup-shutdown-2026-07-18.md and
-# awto-au/linux-rs#25. Deliberately gated on CONFIG_RUST_8250_STARTUP, NOT
-# plain CONFIG_RUST: this wires into the LIVE .startup/.shutdown uart_ops
-# (unlike 8250_io_rs.o above, compiled-in but inert), has no KUnit coverage
-# (real IRQ-subsystem calls, no fake possible — see that doc), and needs an
-# independent on/off switch from Tier A/B's already-verified CONFIG_RUST
-# wiring so the two can be A/B boot-compared without disturbing each other.
-8250_base-$(CONFIG_RUST_8250_STARTUP)	+= 8250_startup_rs.o
-# linux-rs: Tier C translation — serial8250_handle_irq_locked() control flow
-# only, see docs/8250-tier-c-irq-2026-07-18.md and awto-au/linux-rs#25.
-# Deliberately gated on CONFIG_RUST_8250_IRQ, its own independent switch
-# from CONFIG_RUST and CONFIG_RUST_8250_STARTUP: this wires into the LIVE
-# IRQ RX/TX dispatch path (runs on every interrupt, not just bring-up/
-# teardown), has no KUnit coverage (real hardware/DMA/pm-wakeup calls, no
-# fake possible — see that doc), and needs an independent on/off switch so
-# each Tier C slice can be A/B boot-compared without disturbing the others.
-8250_base-$(CONFIG_RUST_8250_IRQ)	+= 8250_irq_rs.o
 8250_base-$(CONFIG_SERIAL_8250_DMA)	+= 8250_dma.o
 8250_base-$(CONFIG_SERIAL_8250_DWLIB)	+= 8250_dwlib.o
 8250_base-$(CONFIG_SERIAL_8250_FINTEK)	+= 8250_fintek.o

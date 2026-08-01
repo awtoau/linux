@@ -34,46 +34,6 @@ config SERIAL_8250
 	  Most people will say Y or M here, so that they can use serial mice,
 	  modems and similar devices connecting to the standard serial ports.
 
-config RUST_8250_STARTUP
-	bool "Rust translation of serial8250_do_startup/serial8250_do_shutdown"
-	depends on SERIAL_8250 && RUST
-	default n
-	help
-	  Build and wire the Rust translation of serial8250_do_startup() and
-	  serial8250_do_shutdown() (linux-rs Tier C, see
-	  docs/8250-tier-c-startup-shutdown-2026-07-18.md in the linux-rs
-	  tree) into this port's live .startup/.shutdown uart_ops. Deliberately
-	  a separate knob from CONFIG_RUST (which gates the already-landed
-	  Tier A/B translations in this same driver): this code calls the real
-	  IRQ subsystem (request_irq/synchronize_irq/free_irq via
-	  ops->setup_irq()/ops->release_irq()) with no KUnit-fakeable
-	  substitute, so it needs to be independently toggleable for a clean
-	  A/B boot-transcript comparison against the untouched C path without
-	  disturbing Tier A/B's own already-verified CONFIG_RUST wiring.
-
-	  If unsure, say N: the unmodified C serial8250_do_startup/_do_shutdown
-	  remain the default and are functionally identical either way.
-
-config RUST_8250_IRQ
-	bool "Rust translation of serial8250_handle_irq_locked"
-	depends on SERIAL_8250 && RUST
-	default n
-	help
-	  Build and wire the Rust translation of
-	  serial8250_handle_irq_locked() (linux-rs Tier C, see
-	  docs/8250-tier-c-irq-2026-07-18.md in the linux-rs tree) into this
-	  driver's live IRQ RX/TX dispatch path. Deliberately a separate
-	  knob from CONFIG_RUST and CONFIG_RUST_8250_STARTUP: this function
-	  runs on every live interrupt (not just device bring-up/teardown)
-	  and asserts lockdep_assert_held_once() against the real port
-	  lock, with no KUnit-fakeable substitute, so it needs its own
-	  independently toggleable switch for a clean A/B boot-transcript
-	  comparison against the untouched C path without disturbing Tier
-	  A/B or the startup/shutdown slice's own already-verified wiring.
-
-	  If unsure, say N: the unmodified C serial8250_handle_irq_locked
-	  remains the default and is functionally identical either way.
-
 config SERIAL_8250_PNP
 	bool "8250/16550 PNP device support" if EXPERT
 	depends on SERIAL_8250 && PNP
