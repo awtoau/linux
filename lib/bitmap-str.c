@@ -187,6 +187,7 @@ EXPORT_SYMBOL(bitmap_print_list_to_buf);
  * kasprintf, scnprintf, memory_read_from_buffer — not yet available)
  * — see bitmap-str_rs.rs's module doc for the exact scope.
  */
+#ifndef CONFIG_RUST
 struct region {
 	unsigned int start;
 	unsigned int off;
@@ -376,6 +377,7 @@ int bitmap_parselist(const char *buf, unsigned long *maskp, int nmaskbits)
 	return 0;
 }
 EXPORT_SYMBOL(bitmap_parselist);
+#endif /* !CONFIG_RUST */
 
 
 /**
@@ -409,6 +411,7 @@ int bitmap_parselist_user(const char __user *ubuf,
 EXPORT_SYMBOL(bitmap_parselist_user);
 
 /* linux-rs: translated in bitmap-str_rs.rs, see that file's module doc. */
+#ifndef CONFIG_RUST
 static const char *bitmap_get_x32_reverse(const char *start,
 					const char *end, u32 *num)
 {
@@ -487,3 +490,4 @@ int bitmap_parse(const char *start, unsigned int buflen,
 	return 0;
 }
 EXPORT_SYMBOL(bitmap_parse);
+#endif /* !CONFIG_RUST */

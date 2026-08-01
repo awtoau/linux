@@ -41,6 +41,7 @@
  * bitmap_rs.rs's module doc for the exact scope and why the remaining
  * functions (allocator-touching, CONFIG_NUMA-gated) are still C-only.
  */
+#ifndef CONFIG_RUST
 bool __bitmap_equal(const unsigned long *bitmap1,
 		    const unsigned long *bitmap2, unsigned int bits)
 {
@@ -575,6 +576,7 @@ int bitmap_bitremap(int oldbit, const unsigned long *old,
 		return find_nth_bit(new, bits, n % w);
 }
 EXPORT_SYMBOL(bitmap_bitremap);
+#endif /* !CONFIG_RUST */
 
 #ifdef CONFIG_NUMA
 /**
@@ -802,6 +804,7 @@ EXPORT_SYMBOL_GPL(devm_bitmap_zalloc);
 
 #if BITS_PER_LONG == 64
 /* linux-rs: translated in bitmap_rs.rs, see that file's module doc. */
+#ifndef CONFIG_RUST
 /**
  * bitmap_from_arr32 - copy the contents of u32 array of bits to bitmap
  *	@bitmap: array of unsigned longs, the destination bitmap
@@ -847,6 +850,7 @@ void bitmap_to_arr32(u32 *buf, const unsigned long *bitmap, unsigned int nbits)
 		buf[halfwords - 1] &= (u32) (UINT_MAX >> ((-nbits) & 31));
 }
 EXPORT_SYMBOL(bitmap_to_arr32);
+#endif /* !CONFIG_RUST */
 #endif
 
 #if BITS_PER_LONG == 32

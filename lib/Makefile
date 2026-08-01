@@ -33,7 +33,7 @@ KASAN_SANITIZE_string.o := n
 CFLAGS_string.o += -fno-stack-protector
 endif
 
-lib-y := ctype.o string.o vsprintf.o \
+lib-y := string.o vsprintf.o \
 	 rbtree.o radix-tree.o timerqueue.o xarray.o \
 	 maple_tree.o idr.o extable.o irq_regs.o \
 	 flex_proportions.o ratelimit.o \
@@ -41,6 +41,13 @@ lib-y := ctype.o string.o vsprintf.o \
  seq_buf.o siphash.o dec_and_lock.o \
 	 nmi_backtrace.o \
 	 buildid.o objpool.o sys_info.o
+
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += ctype_rs.o
+else
+lib-y += ctype.o
+endif
 
 lib-$(CONFIG_UNION_FIND) += union_find.o
 lib-$(CONFIG_PRINTK) += dump_stack.o
@@ -52,7 +59,12 @@ obj-y	+= lockref.o
 
 CONTEXT_ANALYSIS_rhashtable.o := y
 
+# linux-rs: translated TUs — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += sort_rs.o bcd_rs.o list_sort_rs.o
+else
 obj-y += sort.o bcd.o list_sort.o
+endif
 obj-y += debug_locks.o random32.o \
 	 bust_spinlocks.o scatterlist.o \
 	 uuid.o iov_iter.o clz_ctz.o \
@@ -61,9 +73,22 @@ obj-y += debug_locks.o random32.o \
 	 once.o refcount.o rcuref.o errseq.o bucket_locks.o \
 	 generic-radix-tree.o kasprintf.o
 
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += usercopy_rs.o
+else
 obj-y += usercopy.o
+endif
 
+# linux-rs: PARTIAL translation — bitmap.c always builds (it still owns
+# the allocator-touching functions: bitmap_alloc/bitmap_free/
+# devm_bitmap_*, guarded out of bitmap_rs.rs below), plus bitmap_rs.o
+# under CONFIG_RUST for the 27 functions translated so far (guarded out
+# of bitmap.c via #ifdef CONFIG_RUST to avoid duplicate EXPORT_SYMBOLs).
 obj-y += bitmap.o
+ifdef CONFIG_RUST
+obj-y += bitmap_rs.o
+endif
 obj-y += string_helpers.o
 obj-y +=
 obj-$(CONFIG_TEST_HEXDUMP) += test_hexdump.o
@@ -141,7 +166,12 @@ lib-$(CONFIG_INDIRECT_IOMEM) += logic_iomem.o
 
 obj-$(CONFIG_TRACE_MMIO_ACCESS) += trace_readwrite.o
 
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-$(CONFIG_GENERIC_HWEIGHT) += hweight_rs.o
+else
 obj-$(CONFIG_GENERIC_HWEIGHT) += hweight.o
+endif
 
 obj-$(CONFIG_BTREE) += btree.o
 obj-$(CONFIG_INTERVAL_TREE) += interval_tree.o
@@ -341,57 +371,155 @@ obj-$(CONFIG_CONTEXT_ANALYSIS_TEST) += test_context-analysis.o
 subdir-$(CONFIG_FORTIFY_SOURCE) += test_fortify
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-$(CONFIG_UCS2_STRING) += ucs2_string_rs.o
+else
 obj-$(CONFIG_UCS2_STRING) += ucs2_string.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += base64_rs.o
+else
 obj-y += base64.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += win_minmax_rs.o
+else
 lib-y += win_minmax.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += llist_rs.o
+else
 obj-y += llist.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += memcat_p_rs.o
+else
 lib-y += memcat_p.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += argv_split_rs.o
+else
 lib-y += argv_split.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += find_bit_rs.o
+else
 obj-y += find_bit.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += cmdline_rs.o
+else
 lib-y += cmdline.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += memweight_rs.o
+else
 obj-y += memweight.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-$(CONFIG_GENERIC_CSUM) += checksum_rs.o
+else
 obj-$(CONFIG_GENERIC_CSUM) += checksum.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += decompress_rs.o
+else
 lib-y += decompress.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += earlycpio_rs.o
+else
 lib-y += earlycpio.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += hexdump_rs.o
+else
 obj-y += hexdump.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += parser_rs.o
+else
 obj-y += parser.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-y += kstrtox_rs.o
+else
 obj-y += kstrtox.o
+endif
 
+# linux-rs: PARTIAL translation — bitmap-str.c always builds (it still
+# owns bitmap_parse_user/bitmap_print_*/bitmap_parselist_user, guarded
+# out of bitmap-str_rs.rs; see that file's module doc), plus
+# bitmap-str_rs.o under CONFIG_RUST for the functions translated so far
+# (guarded out of bitmap-str.c via #ifdef CONFIG_RUST).
 obj-y += bitmap-str.o
+ifdef CONFIG_RUST
+obj-y += bitmap-str_rs.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+lib-y += iomem_copy_rs.o
+else
 lib-y += iomem_copy.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-$(CONFIG_GENERIC_STRNLEN_USER) += strnlen_user_rs.o
+else
 obj-$(CONFIG_GENERIC_STRNLEN_USER) += strnlen_user.o
+endif
 
 # linux-rs: translated TU — Rust when Rust is available.
+# linux-rs: translated TU — Rust when Rust is available.
+ifdef CONFIG_RUST
+obj-$(CONFIG_GENERIC_STRNCPY_FROM_USER) += strncpy_from_user_rs.o
+else
 obj-$(CONFIG_GENERIC_STRNCPY_FROM_USER) += strncpy_from_user.o
+endif
