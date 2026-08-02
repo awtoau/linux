@@ -42,7 +42,23 @@ always-$(CONFIG_RUST) += libproc_macro2.rlib libquote.rlib libsyn.rlib
 # libproc_macro2/libquote/libsyn are: cheap (small crates), and having
 # them always available means no per-TU opt-in bookkeeping for whether a
 # given file's transpile output happens to need them.
-always-$(CONFIG_RUST) += libc2rust_bitfields.rlib libc2rust_asm_casts.rlib
+#
+# c2rust_bitfields.o (not .rlib): the `FieldType::get_field` trait method
+# has no #[inline], so it is a real external symbol every BitfieldStruct
+# caller references rather than a locally-monomorphized one (unlike the
+# derive-generated `set_field`, which the derive macro emits directly into
+# each caller's own crate). A bare .rlib only carries metadata for
+# --extern typechecking — nothing ever feeds its compiled code to the
+# final `ld`, so with two or more TUs pulling in BitfieldStruct the link
+# fails with "undefined symbol: <T as c2rust_bitfields::FieldType>::get_field"
+# (only surfaced once issue #28 combined more than one such TU in one
+# image — no single-file boot test before it ever exercised this path).
+# Fixed the same way bindings.o/kernel.o/zerocopy.o are: emit a real
+# linkable .o via rustc_library and add it to obj-$(CONFIG_RUST) below so
+# it lands in built-in.a through the normal object-archiving path, instead
+# of never being linked at all.
+always-$(CONFIG_RUST) += libc2rust_asm_casts.rlib
+obj-$(CONFIG_RUST) += c2rust_bitfields.o
 
 always-$(CONFIG_RUST_KERNEL_DOCTESTS) += doctests_kernel_generated.rs
 always-$(CONFIG_RUST_KERNEL_DOCTESTS) += doctests_kernel_generated_kunit.c
@@ -647,11 +663,12 @@ $(obj)/libsyn.rlib: private rustc_target_flags = $(syn-flags)
 $(obj)/libsyn.rlib: $(src)/syn/lib.rs $(obj)/libquote.rlib FORCE
 	+$(call if_changed_dep,rustc_procmacrolibrary)
 
-$(obj)/libc2rust_bitfields.rlib: private skip_clippy = 1
-$(obj)/libc2rust_bitfields.rlib: private rustc_target_flags = $(c2rust_bitfields-flags)
-$(obj)/libc2rust_bitfields.rlib: $(src)/c2rust-bitfields/src/lib.rs \
+$(obj)/c2rust_bitfields.o: private skip_clippy = 1
+$(obj)/c2rust_bitfields.o: private skip_gendwarfksyms = 1
+$(obj)/c2rust_bitfields.o: private rustc_target_flags = $(c2rust_bitfields-flags)
+$(obj)/c2rust_bitfields.o: $(src)/c2rust-bitfields/src/lib.rs \
     $(obj)/$(libc2rust_bitfields_derive_name) $(obj)/core.o $(obj)/compiler_builtins.o FORCE
-	+$(call if_changed_dep,rustc_targetlibrary)
+	+$(call if_changed_rule,rustc_library)
 
 $(obj)/libc2rust_asm_casts.rlib: private skip_clippy = 1
 $(obj)/libc2rust_asm_casts.rlib: private rustc_target_flags = $(c2rust_asm_casts-flags)
