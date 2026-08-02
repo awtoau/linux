@@ -317,7 +317,18 @@ $(obj)/%.lst: $(obj)/%.c FORCE
 #
 # Please see https://github.com/Rust-for-Linux/linux/issues/2 for details on
 # the unstable features in use.
-rust_allowed_features := arbitrary_self_types,asm_goto,generic_arg_infer,used_with_arg
+#
+# `c_variadic` is a linux-rs-specific ADDITION, not present in upstream
+# Rust-for-Linux's own list above — needed to define (not just call) a
+# true C-variadic function, e.g. seq_buf_printf(fmt, ...). Upstream has
+# no precedent for this (their pr_info!/pr_err! macros avoid it via a
+# fixed-arity trick that doesn't generalize to arbitrary pre-existing
+# variadic C functions). Deliberate, reviewed divergence — see
+# rulesdb/rules/0032-c-variadic-feature-gate.toml and
+# awto-au/linux-rs#37/#28 for the decision trail. Every future
+# allow-list addition that upstream does not also carry must get its
+# own rulesdb/rules/NNNN-*.toml entry the same way, never a silent append.
+rust_allowed_features := arbitrary_self_types,asm_goto,generic_arg_infer,used_with_arg,c_variadic
 
 # `--out-dir` is required to avoid temporaries being created by `rustc` in the
 # current working directory, which may be not accessible in the out-of-tree

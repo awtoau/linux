@@ -38,7 +38,7 @@ lib-y := string.o vsprintf.o \
 	 maple_tree.o idr.o extable.o irq_regs.o \
 	 flex_proportions.o ratelimit.o \
 	 is_single_threaded.o plist.o kobject_uevent.o \
- seq_buf.o siphash.o dec_and_lock.o \
+ siphash.o dec_and_lock.o \
 	 nmi_backtrace.o \
 	 buildid.o objpool.o sys_info.o
 
@@ -47,6 +47,15 @@ ifdef CONFIG_RUST
 lib-y += ctype_rs.o
 else
 lib-y += ctype.o
+endif
+
+# linux-rs: translated TU — Rust when Rust is available. seq_buf_printf()
+# needs the c_variadic allow-list addition above rust_allowed_features
+# carries (see rulesdb/rules/0032-c-variadic-feature-gate.toml).
+ifdef CONFIG_RUST
+lib-y += seq_buf_rs.o
+else
+lib-y += seq_buf.o
 endif
 
 lib-$(CONFIG_UNION_FIND) += union_find.o
